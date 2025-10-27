@@ -1,45 +1,101 @@
 import React from 'react';
 
-export default function PrimitiveUseState() {
-  return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold mb-6 text-blue-400">🔬 Primitive UseState POC</h1>
-      <p className="mb-6 text-gray-300">This is a proof of concept demonstrating how React's useState hook works internally.</p>
-      
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-green-400">📋 How it works:</h2>
-        <ul className="space-y-2 text-gray-300">
-          <li>• <span className="text-yellow-400">Unique tokens:</span> Each component instance gets a unique Symbol identifier</li>
-          <li>• <span className="text-yellow-400">External state maps:</span> States stored externally, not in components</li>
-          <li>• <span className="text-yellow-400">Global context:</span> currentlyRenderedCompInstance controls which component is active</li>
-          <li>• <span className="text-yellow-400">Automatic association:</span> useState uses current token to get/set correct state</li>
-        </ul>
-      </div>
+let state = [];
+let index = 0;
 
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-3 text-purple-400">💡 The Secret:</h3>
-        <p className="text-gray-300 mb-4">
-          React hooks aren't magic! They rely on the renderer knowing which component is currently executing.
-        </p>
-        <div className="bg-gray-900 border border-gray-600 rounded p-4 font-mono text-sm text-green-300">
-          <div className="text-gray-500">// Simplified version:</div>
-          <div className="mt-2">
-            <span className="text-blue-300">let</span> <span className="text-white">currentlyRenderedCompInstance</span><span className="text-gray-500">;</span>
-          </div>
-          <div>
-            <span className="text-blue-300">const</span> <span className="text-white">compStates</span> <span className="text-gray-500">=</span> <span className="text-blue-300">new</span> <span className="text-yellow-300">Map</span><span className="text-gray-500">();</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-blue-300">function</span> <span className="text-yellow-300">useState</span><span className="text-gray-500">(</span><span className="text-white">initialState</span><span className="text-gray-500">) {'{'}</span>
-          </div>
-          <div className="ml-4">
-            <span className="text-gray-500">// Magic happens here! 🪄</span>
-          </div>
-          <div className="text-gray-500">{'}'}</div>
-        </div>
-      </div>
-    </div>
-  );
+function useState(initialState) {
+  const localIndex = index;
+  if (typeof state[localIndex] === 'undefined') {
+    state[localIndex] = initialState;
+  }
+  index++;
+  return [
+    state[localIndex],
+    (newState) => {
+      state[localIndex] = newState;
+    }
+  ];
 }
 
-// https://stackoverflow.com/questions/53729917/react-hooks-whats-happening-under-the-hood
+function render(component) {
+  index = 0;
+  return component();
+}
+
+export default function PrimitiveUseState() {
+  const [, setForceUpdate] = React.useState(0);
+
+  const triggerRerender = () => {
+    setForceUpdate(prev => prev + 1);
+  };
+
+  function CounterComponent() {
+    const [count, setCount] = useState(0);
+
+    const increment = () => {
+      setCount(count + 1);
+      triggerRerender();
+    };
+
+    const decrement = () => {
+      setCount(count - 1);
+      triggerRerender();
+    };
+
+    return (
+      <section className="bg-gray-800 rounded-lg p-6">
+        <div className="mb-6 text-center">
+          <div className="text-sm text-gray-400 mb-2">Contador:</div>
+          <div className="text-3xl font-bold text-white mb-4">{count}</div>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={decrement}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold"
+            >
+              -
+            </button>
+            <button
+              onClick={increment}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const renderedWithRender = render(CounterComponent);
+
+  return (
+    <section className="min-h-screen bg-gray-900 text-white p-8">
+      <div className="max-w-4xl mx-auto">
+
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-4 text-blue-400">
+            Handmade useState Hook
+          </h1>
+        </div>
+
+        <div className="space-y-4">
+          {renderedWithRender}
+        </div>
+
+        <div className="mt-8 bg-gray-700 p-4 rounded">
+          <h3 className="text-yellow-400 mb-3 font-semibold">🔍 Debug:</h3>
+          <div className="font-mono text-sm">
+            <div className="text-gray-300 mb-2">
+              Index atual: <span className="text-yellow-300">{index}</span>
+            </div>
+            {state.map((val, i) => (
+              <div key={i} className="text-gray-300">
+                state[{i}]: {JSON.stringify(val)}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
